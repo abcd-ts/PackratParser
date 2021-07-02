@@ -4,16 +4,16 @@ import java.util.List;
 import java.util.Set;
 
 // 梅田さんの卒論に基づいた左再帰を解析できるPackrat Parser
-public class LRPackratParser extends PackratParser {
+public class SimplerLRPackratParser extends PackratParser {
     protected LRMemo memo;
-    
-    public LRPackratParser(Rules rules, String input) {
+
+    public SimplerLRPackratParser(Rules rules, String input) {
         super(rules, input);
         this.memo = new LRMemo();
-        this.debug = false;
+        debug = false;
     }
 
-    public LRPackratParser(Rules rules) {
+    public SimplerLRPackratParser(Rules rules) {
         super(rules);
     }
 
@@ -45,22 +45,31 @@ public class LRPackratParser extends PackratParser {
         }
     }
 
-    private void growLR(Peg.NonTerminal nt, int p) throws Exception {
+    public void growLR(Peg.NonTerminal nt, int p) throws Exception {
         int oldPos;
+        isGrow = true;
         while (true) {
             oldPos = pos;
             pos = p;
             Peg exp = rules.getRule(nt);
             Set<Peg.NonTerminal> limits = new HashSet<Peg.NonTerminal>();
             limits.add(nt);
-            ASTree ans = evalGrow(exp, p, limits);
+            ASTree ans = eval(exp, p, limits);
             if ((!ASTree.isMATCH(ans)) || pos <= oldPos) break;
 
             memo.put(nt, p, ans, pos);
         }
+        isGrow = false;
     }
 
-    private ASTree evalGrow(Peg e, int p, Set<Peg.NonTerminal> limits) throws Exception {
+    boolean isGrow = false;
+
+    @Override
+    public ASTree eval(Peg e) throws Exception {
+        return eval(e, pos, new HashSet<Peg.NonTerminal>());
+    }
+
+    public ASTree eval(Peg e, int p, Set<Peg.NonTerminal> limits) throws Exception {
         if (e instanceof Peg.Empty) {
             return new ASTree("");
         }
@@ -81,7 +90,7 @@ public class LRPackratParser extends PackratParser {
         if (e instanceof Peg.NegPrediction) {
             if (debug) System.out.println("eval g NegPrediction !" + e.toString());
 
-            if (ASTree.isMATCH(evalGrow(((Peg.NegPrediction)e).expr, p, limits))) {
+            if (ASTree.isMATCH(eval(((Peg.NegPrediction)e).expr, p, limits))) {
                 pos = p;
                 return ASTree.MISMATCH;
             }
@@ -94,7 +103,7 @@ public class LRPackratParser extends PackratParser {
             if (debug) System.out.println("eval g NonTerminal " + e.toString());
 
             ASTree tmp = null;
-            if (pos == p && !limits.contains((Peg.NonTerminal)e)) {
+            if (pos == p && isGrow && !limits.contains((Peg.NonTerminal)e)) {
                 tmp = applyRuleGrow(e, pos, limits);
             }
             else {
@@ -103,6 +112,7 @@ public class LRPackratParser extends PackratParser {
             if (tmp.equals(ASTree.MISMATCH))
                 return tmp;
             
+            //System.out.println(tmp.label);
             ASTree res = new ASTree(((Peg.NonTerminal)e).name);
             res.addChild(tmp);
             return res;
@@ -114,7 +124,7 @@ public class LRPackratParser extends PackratParser {
             Peg.Choice ch = (Peg.Choice)e;
             ASTree res = null;
             for (Peg expr: ch.exprs) {
-                if (ASTree.isMATCH(res = evalGrow(expr, p, limits))) {
+                if (ASTree.isMATCH(res = eval(expr, p, limits))) {
                     return res;
                 }
             }
@@ -127,7 +137,7 @@ public class LRPackratParser extends PackratParser {
             Peg.Sequence seq = (Peg.Sequence)e;
             ASTree res = null, tmp = null; 
             for (Peg expr: seq.exprs) {
-                if (!(tmp = evalGrow(expr, p, limits)).equals(ASTree.MISMATCH)) {
+                if (!(tmp = eval(expr, p, limits)).equals(ASTree.MISMATCH)) {
                     if (res == null) {
                         res = tmp;
                     }
@@ -154,7 +164,7 @@ public class LRPackratParser extends PackratParser {
         Peg.NonTerminal nt = (Peg.NonTerminal)e;
         limits.add(nt);
         Peg exp = rules.getRule(nt);
-        ASTree ans = evalGrow(exp, p, limits);
+        ASTree ans = eval(exp, p, limits);
         if (ans == ASTree.MISMATCH || ans == ASTree.FAIL || ans == null || pos <= memo.getPosNext(nt, p)) {
             ans = memo.getAst(nt, p);
             pos = memo.getPosNext(nt, p);
@@ -166,10 +176,10 @@ public class LRPackratParser extends PackratParser {
     }
 
     public static void main(String[] args) {
-        List<LRPackratParser> testcase = new LinkedList<LRPackratParser>();
+        List<Parser> testcase = new LinkedList<Parser>();
 
         testcase.add(
-            new LRPackratParser(
+            new SimplerLRPackratParser(
                 new Rules().
                     addRule(Peg.nt("Expr"), Peg.ch(Peg.seq(Peg.nt("Term"), Peg.t("+"), Peg.nt("Expr")), Peg.nt("Term"))).
                     addRule(Peg.nt("Term"), Peg.ch(Peg.seq(Peg.t("("), Peg.nt("Expr"), Peg.t(")")), Peg.nt("Num"))).
@@ -178,14 +188,14 @@ public class LRPackratParser extends PackratParser {
         ));
 
         testcase.add(
-            new LRPackratParser(
+            new SimplerLRPackratParser(
                 new Rules().
                     addRule(Peg.nt("S"), Peg.seq(Peg.np(Peg.np(Peg.seq(Peg.nt("A"), Peg.np(Peg.t("b"))))), Peg.t("a"), Rules.repMT0(Peg.t("a")), Peg.nt("B"))).
                     addRule(Peg.nt("A"), Peg.seq(Peg.t("a"), Peg.ch(Peg.nt("A"), Peg.emp()), Peg.t("b"))).
                     addRule(Peg.nt("B"), Peg.seq(Peg.t("b"), Peg.ch(Peg.nt("B"), Peg.emp()), Peg.t("c")))
                     , "aabbcc"
         ));
-
+        
         // 左再帰を含む規則
         Rules directLR = new Rules()
             .addRule(Peg.nt("lr"), Peg.ch(Peg.seq(Peg.nt("lr"), Peg.t("1")), Peg.t("1"))
@@ -214,27 +224,27 @@ public class LRPackratParser extends PackratParser {
         );
 
         testcase.add( // Warthらの論文の直接左再帰
-            new LRPackratParser(directLR, "11111")
+            new SimplerLRPackratParser(directLR, "11111")
         );
 
         testcase.add( // Warthらの論文の間接左再帰
-            new LRPackratParser(indirectLR, "11111")
+            new SimplerLRPackratParser(indirectLR, "11111")
         );
         
         testcase.add( // Warthらの手法で解析できないとされる，同じ解析位置に複数の左再帰が発生する例
-            new LRPackratParser(multiChoiceLR, "baab")
+            new SimplerLRPackratParser(multiChoiceLR, "baab")
         );
         
         testcase.add( // 複数箇所に複数の左再帰を含む例(後藤らの手法で失敗する例) 
-            new LRPackratParser(multiLR, "10+10")
+            new SimplerLRPackratParser(multiLR, "10+10")
         );
-        
+
         testcase.add(
-            new LRPackratParser(bab_bab, "bab-bab")
+            new SimplerLRPackratParser(bab_bab, "bab-bab")
         );
-        
+
         testcase.add(   // Medeirosの論文で，Warthの手法では失敗するとされていた例
-            new LRPackratParser(
+            new SimplerLRPackratParser(
                 new Rules()
                 .addRule(Peg.nt("S"), Peg.nt("X"))
                 .addRule(Peg.nt("X"), Peg.ch(Peg.seq(Peg.nt("X"), Peg.nt("Y")), Peg.emp()))
@@ -243,7 +253,7 @@ public class LRPackratParser extends PackratParser {
         );
 
         try {
-            for (PackratParser test: testcase) {
+            for (Parser test: testcase) {
                 test.parse().print();
             }
         }
