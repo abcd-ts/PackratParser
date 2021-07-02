@@ -121,9 +121,15 @@ public class Rules {
             .addRule(Peg.nt("Num"), Peg.ch(Peg.seq(Peg.nt("Num"), Peg.nt("DIGIT")), Peg.nt("DIGIT")))
             .addRule(Peg.nt("DIGIT"), Peg.ch(Peg.t("0"), Peg.t("1")));
 
+        Rules bab_bab = new Rules()
+            .addRule(Peg.nt("S"), Peg.seq(Peg.nt("A"), Peg.t("-"), Peg.nt("A")))
+            .addRule(Peg.nt("A"), Peg.ch(Peg.seq(Peg.nt("B"), Peg.t("b")), Peg.t("b")))
+            .addRule(Peg.nt("B"), Peg.ch(Peg.seq(Peg.nt("B"), Peg.t("a")), Peg.seq(Peg.nt("A"), Peg.t("a"))));
+
         directLR.printRule();
         indirectLR.printRule();
         multiChoiceLR.printRule();
         multiLR.printRule();
+        bab_bab.printRule();
     }
 }
