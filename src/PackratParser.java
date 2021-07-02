@@ -88,6 +88,8 @@ public class PackratParser implements Parser{
         }
 
         if (e instanceof Peg.Choice) {
+            if (debug) System.out.println("eval Choice " + e.toString());
+
             Peg.Choice ch = (Peg.Choice)e;
             ASTree res = null;
             for (Peg expr: ch.exprs) {
@@ -99,6 +101,8 @@ public class PackratParser implements Parser{
         }
 
         if (e instanceof Peg.Sequence) {
+            if (debug) System.out.println("eval Sequence" + e.toString());
+
             Peg.Sequence seq = (Peg.Sequence)e;
             ASTree res = null, tmp = null; 
             for (Peg expr: seq.exprs) {
