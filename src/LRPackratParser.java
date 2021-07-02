@@ -6,10 +6,11 @@ import java.util.Set;
 // 梅田さんの卒論に基づいた左再帰を解析できるPackrat Parser
 public class LRPackratParser extends PackratParser {
     protected LRMemo memo;
-
+    
     public LRPackratParser(Rules rules, String input) {
         super(rules, input);
         this.memo = new LRMemo();
+        this.debug = false;
     }
 
     public LRPackratParser(Rules rules) {
@@ -201,6 +202,12 @@ public class LRPackratParser extends PackratParser {
             .addRule(Peg.nt("Num"), Peg.ch(Peg.seq(Peg.nt("Num"), Peg.nt("DIGIT")), Peg.nt("DIGIT")))
             .addRule(Peg.nt("DIGIT"), Peg.ch(Peg.t("0"), Peg.t("1")));
 
+        Rules bab_bab = new Rules()
+            .addRule(Peg.nt("S"), Peg.seq(Peg.nt("A"), Peg.t("-"), Peg.nt("A")))
+            .addRule(Peg.nt("A"), Peg.ch(Peg.seq(Peg.nt("B"), Peg.t("b")), Peg.t("b")))
+            .addRule(Peg.nt("B"), Peg.ch(Peg.seq(Peg.nt("B"), Peg.t("a")), Peg.seq(Peg.nt("A"), Peg.t("a"))));
+
+
         testcase.add( // Warthらの論文の直接左再帰
             new LRPackratParser(directLR, "11111")
         );
@@ -215,6 +222,20 @@ public class LRPackratParser extends PackratParser {
         
         testcase.add( // 複数箇所に複数の左再帰を含む例(後藤らの手法で失敗する例) 
             new LRPackratParser(multiLR, "10+10"));
+
+        testcase.add(
+            new LRPackratParser(bab_bab, "bab-bab")
+        );
+        
+
+        testcase.add(   // Medeirosの論文で，Warthの手法では失敗するとされていた例
+            new LRPackratParser(
+                new Rules()
+                .addRule(Peg.nt("S"), Peg.nt("X"))
+                .addRule(Peg.nt("X"), Peg.ch(Peg.seq(Peg.nt("X"), Peg.nt("Y")), Peg.emp()))
+                .addRule(Peg.nt("Y"), Peg.t("x"))
+            , "xxx")
+        );
 
         try {
             for (PackratParser test: testcase) {
