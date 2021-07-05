@@ -47,7 +47,7 @@ public class SimplerLRPackratParser extends PackratParser {
 
     public void growLR(Peg.NonTerminal nt, int p) throws Exception {
         int oldPos;
-        isGrow = true;
+        growing = true;
         while (true) {
             oldPos = pos;
             pos = p;
@@ -59,10 +59,10 @@ public class SimplerLRPackratParser extends PackratParser {
 
             memo.put(nt, p, ans, pos);
         }
-        isGrow = false;
+        growing = false;
     }
 
-    boolean isGrow = false;
+    boolean growing = false;
 
     @Override
     public ASTree eval(Peg e) throws Exception {
@@ -103,7 +103,7 @@ public class SimplerLRPackratParser extends PackratParser {
             if (debug) System.out.println("eval g NonTerminal " + e.toString());
 
             ASTree tmp = null;
-            if (pos == p && isGrow && !limits.contains((Peg.NonTerminal)e)) {
+            if (pos == p && growing && !limits.contains((Peg.NonTerminal)e)) {
                 tmp = applyRuleGrow(e, pos, limits);
             }
             else {
@@ -240,7 +240,7 @@ public class SimplerLRPackratParser extends PackratParser {
         );
 
         testcase.add(
-            new SimplerLRPackratParser(bab_bab, "bab-bab")
+            new SimplerLRPackratParser(bab_bab, "baab-baab")
         );
 
         testcase.add(   // Medeirosの論文で，Warthの手法では失敗するとされていた例
